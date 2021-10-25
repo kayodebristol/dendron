@@ -30,10 +30,10 @@ import { BasicCommand } from "./base";
 import _ from "lodash";
 import path from "path";
 import { getEngine } from "../workspace";
-import { EngineAPIService } from "../services/EngineAPIService";
 import { delayedUpdateDecorations } from "../features/windowDecorations";
 import { findReferences, FoundRefT } from "../utils/md";
 import { Location } from "vscode";
+import { EngineAPIServiceV2 } from "../services/EngineAPIServiceV2";
 
 type CommandInput =
   | {
@@ -45,7 +45,7 @@ type CommandOpts = {
   nodesToMove: Node[];
   modifiedOriginTree: Node;
   originProc: Processor;
-  engine: EngineAPIService;
+  engine: EngineAPIServiceV2;
 } & CommandInput;
 type CommandOutput = {
   updated: NoteProps[];
@@ -72,7 +72,7 @@ export class MoveHeaderCommand extends BasicCommand<
     severity: ERROR_SEVERITY.MINOR,
   });
 
-  private getProc = (engine: EngineAPIService, note: NoteProps) => {
+  private getProc = (engine: EngineAPIServiceV2, note: NoteProps) => {
     return MDUtilsV5.procRemarkFull({
       engine,
       fname: note.fname,
@@ -87,7 +87,7 @@ export class MoveHeaderCommand extends BasicCommand<
    * @param engine
    * @returns {}
    */
-  private validateAndProcessInput(engine: EngineAPIService): {
+  private validateAndProcessInput(engine: EngineAPIServiceV2): {
     proc: Processor;
     origin: NoteProps;
     targetHeader: Heading;
@@ -204,7 +204,7 @@ export class MoveHeaderCommand extends BasicCommand<
    * @param nodesToMove
    */
   private async appendHeaderToDestination(
-    engine: EngineAPIService,
+    engine: EngineAPIServiceV2,
     dest: NoteProps,
     nodesToMove: Node[]
   ): Promise<void> {
@@ -254,7 +254,7 @@ export class MoveHeaderCommand extends BasicCommand<
    */
   private getNoteByLocation(
     location: Location,
-    engine: EngineAPIService
+    engine: EngineAPIServiceV2
   ): NoteProps | undefined {
     const { wsRoot, vaults, notes } = engine;
     const fsPath = location.uri.fsPath;
@@ -314,7 +314,7 @@ export class MoveHeaderCommand extends BasicCommand<
   async updateReferences(
     foundReferences: FoundRefT[],
     anchorNamesToUpdate: string[],
-    engine: EngineAPIService,
+    engine: EngineAPIServiceV2,
     origin: NoteProps,
     dest: NoteProps
   ): Promise<NoteProps[]> {

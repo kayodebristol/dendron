@@ -49,7 +49,8 @@ import {
 } from "./constants";
 import { FileItem } from "./external/fileutils/FileItem";
 import { Logger } from "./logger";
-import { EngineAPIService } from "./services/EngineAPIService";
+// import { EngineAPIService } from "./services/EngineAPIService";
+import { EngineAPIServiceV2 } from "./services/EngineAPIServiceV2";
 import { AnalyticsUtils } from "./utils/analytics";
 import { getExtension, getDWorkspace } from "./workspace";
 import { TutorialInitializer } from "./workspace/tutorialInitializer";
@@ -725,7 +726,7 @@ export class WSUtils {
 
   static updateEngineAPI(port: number | string): DEngineClient {
     const ext = getExtension();
-    const svc = EngineAPIService.createEngine({
+    const svc = EngineAPIServiceV2.createEngine({
       port,
       enableWorkspaceTrust: vscode.workspace.isTrusted,
     });
