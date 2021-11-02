@@ -63,6 +63,8 @@ import { SeedAddCommand } from "./SeedAddCommand";
 import { SeedRemoveCommand } from "./SeedRemoveCommand";
 import { RunMigrationCommand } from "./RunMigrationCommand";
 import { SeedBrowseCommand } from "./SeedBrowseCommand";
+import { RegisterNoteTypeCommand } from "./RegisterNoteType";
+import { CreateUserDefinedTypedNote } from "./CreateUserDefinedTypedNote";
 
 const ALL_COMMANDS = [
   AddAndCommit,
@@ -129,6 +131,8 @@ const ALL_COMMANDS = [
   SeedRemoveCommand,
   RunMigrationCommand,
   SeedBrowseCommand,
+  RegisterNoteTypeCommand,
+  CreateUserDefinedTypedNote,
 ] as CodeCommandConstructor[];
 
 // when("betaFeatures", ()=> {

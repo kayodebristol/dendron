@@ -1,6 +1,7 @@
 import {
   APIUtils,
   ConfigUtils,
+  CONSTANTS,
   DendronError,
   DendronTreeViewKey,
   DendronWebViewKey,
@@ -48,7 +49,12 @@ import ReferenceHoverProvider from "./features/ReferenceHoverProvider";
 import ReferenceProvider from "./features/ReferenceProvider";
 import { FileWatcher } from "./fileWatcher";
 import { Logger } from "./logger";
-import { EngineAPIService } from "./services/EngineAPIService";
+import { UserDefinedTypeV1 } from "./noteTypes/userDefinedTypeV1";
+import { EngineAPIServiceV2 } from "./services/EngineAPIServiceV2";
+import {
+  TypedNoteManager,
+  TypedNoteService,
+} from "./services/TypedNoteService";
 import { CodeConfigKeys } from "./types";
 import { DisposableStore, resolvePath, VSCodeUtils } from "./utils";
 import { sentryReportingCallback } from "./utils/analytics";
@@ -142,6 +148,7 @@ export class DendronExtension {
   public workspaceService?: WorkspaceService;
   protected treeViews: { [key: string]: vscode.WebviewViewProvider };
   protected webViews: { [key: string]: vscode.WebviewPanel | undefined };
+  private _typeRegistrar: TypedNoteManager;
 
   static context(): vscode.ExtensionContext {
     return getExtension().context;
@@ -169,6 +176,10 @@ export class DendronExtension {
   ): vscode.WorkspaceConfiguration {
     // the reason this is static is so we can stub it for tests
     return vscode.workspace.getConfiguration(section);
+  }
+
+  get typeRegistrar(): TypedNoteService {
+    return this._typeRegistrar;
   }
 
   async pauseWatchers<T = void>(cb: () => Promise<T>) {
@@ -299,7 +310,7 @@ export class DendronExtension {
   public serverWatcher?: vscode.FileSystemWatcher;
   public schemaWatcher?: SchemaWatcher;
   public L: typeof Logger;
-  public _enginev2?: EngineAPIService;
+  public _enginev2?: EngineAPIServiceV2;
   public type: WorkspaceType;
   private disposableStore: DisposableStore;
   public workspaceImpl?: DWorkspaceV2;
@@ -345,6 +356,31 @@ export class DendronExtension {
     this.treeViews = {};
     this.webViews = {};
     this.setupViews(context);
+    this._typeRegistrar = new TypedNoteManager(context);
+
+    // Register any User Defined Note Types
+    const userTypesPath = vscode.workspace.workspaceFile
+      ? path.join(
+          path.dirname(vscode.workspace.workspaceFile?.fsPath),
+          CONSTANTS.DENDRON_USER_NOTE_TYPES_BASE
+        )
+      : undefined;
+
+    if (userTypesPath) {
+      const files = fs.readdirSync(userTypesPath);
+      files.forEach((file) => {
+        if (file.endsWith(".js")) {
+          const typeId = path.basename(file, ".js");
+          this.L.info("Registering User Defined Note Type with ID " + typeId);
+          const newNoteType = new UserDefinedTypeV1(
+            typeId,
+            path.join(userTypesPath, file)
+          );
+          this._typeRegistrar.registerType(newNoteType);
+        }
+      });
+    }
+
     const ctx = "DendronExtension";
     this.L.info({ ctx, msg: "initialized" });
   }
@@ -451,14 +487,14 @@ export class DendronExtension {
     this.webViews[key] = view;
   }
 
-  getEngine(): EngineAPIService {
+  getEngine(): EngineAPIServiceV2 {
     if (!this._enginev2) {
       throw Error("engine not set");
     }
     return this._enginev2;
   }
 
-  setEngine(engine: EngineAPIService) {
+  setEngine(engine: EngineAPIServiceV2) {
     this._enginev2 = engine;
     this.getWorkspaceImplOrThrow().engine = engine;
   }

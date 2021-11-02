@@ -6,6 +6,7 @@ export * from "./workspace";
 export * from "./foundation";
 export * from "./seed";
 export * from "./intermediateConfigs";
+export * from "./noteType";
 
 export type Stage = "dev" | "prod" | "test";
 export type DEngineQuery = {
