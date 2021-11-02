@@ -18,6 +18,7 @@ import {
   showInputBox,
   showPodQuickPickItemsV4,
   updateGlobalState,
+  handleConflict,
 } from "../utils/pods";
 import { getExtension, getDWorkspace } from "../workspace";
 import { BaseCommand } from "./base";
@@ -112,6 +113,7 @@ export class ImportPodCommand extends BaseCommand<
       showDocumentQuickPick,
       showInputBox,
       openFileInEditor,
+      handleConflict,
     };
     if (!wsRoot) {
       throw Error("ws root not defined");
