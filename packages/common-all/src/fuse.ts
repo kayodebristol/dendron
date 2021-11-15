@@ -11,6 +11,7 @@ import {
   NoteUtils,
   DNodeUtils,
   DEngineClient,
+  milliseconds,
 } from ".";
 import { DVault } from "./types";
 
@@ -21,6 +22,7 @@ export type NoteIndexProps = {
   vault: DVault;
   updated: number;
   stub?: boolean;
+  body: string;
 };
 
 /** https://fusejs.io/examples.html#extended-search */
@@ -87,6 +89,9 @@ function createFuse<T>(
     ignoreFieldNorm: true,
     ...opts,
   };
+  if (opts.preset === "note") {
+    options.keys = ["fname", "body"];
+  }
   if (opts.preset === "schema") {
     options.keys = ["fname", "id"];
   }
@@ -220,7 +225,9 @@ export class FuseEngine {
     } else {
       const formattedQS = FuseEngine.formatQueryForFuse({ qs });
 
+      const beforeMillis = milliseconds();
       let results = this.notesIndex.search(formattedQS);
+      console.log(`Took millis: '${milliseconds() - beforeMillis}'`);
 
       results = this.postQueryFilter({
         results,
@@ -261,15 +268,22 @@ export class FuseEngine {
   }
 
   async updateNotesIndex(notes: NotePropsDict) {
+    const beforeMillis = milliseconds();
     this.notesIndex.setCollection(
-      _.map(notes, ({ fname, title, id, vault, updated, stub }, _key) => ({
-        fname,
-        id,
-        title,
-        vault,
-        updated,
-        stub,
-      }))
+      _.map(notes, ({ fname, title, id, vault, updated, stub, body }, _key) => {
+        return {
+          body,
+          fname,
+          id,
+          title,
+          vault,
+          updated,
+          stub,
+        };
+      })
+    );
+    console.log(
+      `Took '${milliseconds() - beforeMillis}ms' to update note index.`
     );
   }
 
