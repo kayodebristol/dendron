@@ -68,7 +68,7 @@ type AirtableExportPodProcessProps = AirtableExportPodCustomOpts & {
   checkpoint: string;
 };
 
-class AirtableUtils {
+export class AirtableUtils {
   static checkNoteHasAirtableId(note: NoteProps): boolean {
     return !_.isUndefined(_.get(note.custom, "airtableId"));
   }
