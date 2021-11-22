@@ -2,10 +2,50 @@ import { describe, it } from "mocha";
 import {
   extractHeaderAnchorIfExists,
   extractNoteIdFromHref,
+  handleLink,
+  LinkType,
+  ShowPreviewAssetOpener,
+  ShowPreviewNoteUtil,
 } from "../../commands/ShowPreview";
 import { expect } from "../testUtilsv2";
+import sinon from "sinon";
+import { TestNoteFactory } from "@dendronhq/common-test-utils";
+import path from "path";
+// import { PickerUtilsV2 } from "../../components/lookup/utils";
 
 suite("ShowPreview utility methods", () => {
+  describe(`handleLink`, () => {
+    describe(`LinkType.ASSET`, () => {
+      describe(`WHEN valid href`, () => {
+        it(`WHEN called with valid href THEN open asset with default app.`, async () => {
+          const factory = TestNoteFactory.defaultUnitTestFactory();
+          const fooNote = await factory.createForFName("foo");
+          sinon.stub(ShowPreviewNoteUtil, "getNoteById").returns(fooNote);
+          const assetOpenerStub = sinon.stub(
+            ShowPreviewAssetOpener,
+            "openWithDefaultApp"
+          );
+
+          await handleLink({
+            wsRoot: TestNoteFactory.DEFAULT_WS_ROOT,
+            linkType: LinkType.ASSET,
+            data: {
+              href: "vscode-webview://e380a62c-2dea-46a8-ae1e-a34868c9719e/assets/dummy-pdf.pdf",
+              id: "foo-id",
+            },
+          });
+
+          const expected = path.join(
+            TestNoteFactory.DEFAULT_VAULT.fsPath,
+            "assets/dummy-pdf.pdf"
+          );
+
+          expect(assetOpenerStub.calledWith(expected)).toBeTruthy();
+        });
+      });
+    });
+  });
+
   describe(`extractHeaderAnchorIfExists`, () => {
     it("WHEN anchor exists THEN return it", () => {
       const anchor = extractHeaderAnchorIfExists(
@@ -25,7 +65,6 @@ suite("ShowPreview utility methods", () => {
   });
 
   describe(`extractNoteIdFromHref`, () => {
-
     describe(`WHEN id is present`, () => {
       it("AND with header anchor THEN extract id", () => {
         const actual = extractNoteIdFromHref({

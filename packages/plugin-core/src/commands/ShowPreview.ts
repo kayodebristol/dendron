@@ -1,8 +1,11 @@
 import {
   assertUnreachable,
+  DendronError,
   DendronWebViewKey,
   DMessageEnum,
   DNoteAnchor,
+  ERROR_STATUS,
+  ErrorFactory,
   getStage,
   NoteProps,
   NoteUtils,
@@ -11,9 +14,14 @@ import {
   OnDidChangeActiveTextEditorMsg,
   VaultUtils,
 } from "@dendronhq/common-all";
-import { findUpTo, WebViewCommonUtils } from "@dendronhq/common-server";
+import {
+  findUpTo,
+  vault2Path,
+  WebViewCommonUtils,
+} from "@dendronhq/common-server";
 import _ from "lodash";
 import path from "path";
+import open from "open";
 import * as vscode from "vscode";
 import { DENDRON_COMMANDS } from "../constants";
 import { Logger } from "../logger";
@@ -94,8 +102,9 @@ export const extractNoteIdFromHref = (data: {
   return out;
 };
 
-enum LinkType {
+export enum LinkType {
   WIKI = "WIKI",
+  ASSET = "ASSET",
   WEBSITE = "WEBSITE",
   MARKDOWN = "MARKDOWN",
   UNKNOWN = "UNKNOWN",
@@ -103,22 +112,94 @@ enum LinkType {
 
 const classifyLink = ({ href }: NoteViewMessage["data"]): LinkType => {
   if (href && href.startsWith("vscode-webview")) {
-    return LinkType.WIKI;
-  }
-  if (href && (href.startsWith("http://") || href.startsWith("https://"))) {
+    if (href.includes("/assets/")) {
+      return LinkType.ASSET;
+    } else {
+      return LinkType.WIKI;
+    }
+  } else if (
+    href &&
+    (href.startsWith("http://") || href.startsWith("https://"))
+  ) {
     return LinkType.WEBSITE;
+  } else {
+    return LinkType.UNKNOWN;
   }
-  return LinkType.UNKNOWN;
 };
 
-const handleLink = async ({
+/** This wrapper class is mostly here to allow easier stubbing for testing. */
+export class ShowPreviewNoteUtil {
+  static getNoteById(id: string) {
+    return getEngine().notes[id];
+  }
+}
+
+export class ShowPreviewAssetOpener {
+  static async openWithDefaultApp(filePath: string) {
+    await open(filePath).catch((err) => {
+      const error = DendronError.createFromStatus({
+        status: ERROR_STATUS.UNKNOWN,
+        innerError: err,
+      });
+      Logger.error({ error });
+    });
+  }
+}
+
+const handleAssetLink = async ({
+  data,
+  wsRoot,
+}: {
+  data: NoteViewMessage["data"];
+  wsRoot: string;
+}) => {
+  const assetPathRelative = data.href?.substring(data.href?.indexOf("assets/"));
+  if (assetPathRelative === undefined) {
+    Logger.error({
+      msg: `Did not find 'assets/' string within asset type link.`,
+    });
+    return;
+  }
+  const noteId = data.id;
+  if (noteId === undefined) {
+    Logger.error({
+      msg: `LinkData did not contain note id data:'${ErrorFactory.safeStringify(
+        data
+      )}'`,
+    });
+    return;
+  }
+
+  const note: NoteProps | undefined = ShowPreviewNoteUtil.getNoteById(noteId);
+  if (note === undefined) {
+    Logger.error({
+      msg: `Note was not found for id: '${noteId}'`,
+    });
+    return;
+  }
+
+  const assetPathFull = path.join(
+    vault2Path({ vault: note.vault, wsRoot }),
+    assetPathRelative
+  );
+
+  await ShowPreviewAssetOpener.openWithDefaultApp(assetPathFull);
+};
+
+export const handleLink = async ({
   linkType,
   data,
+  wsRoot,
 }: {
   linkType: LinkType;
   data: NoteViewMessage["data"];
+  wsRoot: string;
 }) => {
   switch (linkType) {
+    case LinkType.ASSET: {
+      await handleAssetLink({ data, wsRoot });
+      break;
+    }
     case LinkType.WIKI: {
       // wiki links will have the following format
       //
@@ -287,7 +368,11 @@ export class ShowPreviewCommand extends BasicCommand<
         case NoteViewMessageEnum.onClick: {
           const { data } = msg;
           const linkType = classifyLink(data);
-          await handleLink({ linkType, data });
+          await handleLink({
+            linkType,
+            data,
+            wsRoot: getEngine().wsRoot,
+          });
           break;
         }
         case NoteViewMessageEnum.onGetActiveEditor: {
