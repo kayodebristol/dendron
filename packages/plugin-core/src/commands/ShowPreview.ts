@@ -111,12 +111,14 @@ export enum LinkType {
 }
 
 const classifyLink = ({ href }: NoteViewMessage["data"]): LinkType => {
-  if (href && href.startsWith("vscode-webview")) {
-    if (href.includes("/assets/")) {
-      return LinkType.ASSET;
-    } else {
-      return LinkType.WIKI;
-    }
+  if (
+    href &&
+    (href.startsWith("dendron://") ||
+      (href.startsWith("vscode-webview") && href.includes("/assets/")))
+  ) {
+    return LinkType.ASSET;
+  } else if (href && href.startsWith("vscode-webview")) {
+    return LinkType.WIKI;
   } else if (
     href &&
     (href.startsWith("http://") || href.startsWith("https://"))
@@ -146,7 +148,7 @@ export class ShowPreviewAssetOpener {
   }
 }
 
-const handleAssetLink = async ({
+const vaultlessAssetPath = ({
   data,
   wsRoot,
 }: {
@@ -154,15 +156,16 @@ const handleAssetLink = async ({
   wsRoot: string;
 }) => {
   const assetPathRelative = data.href?.substring(data.href?.indexOf("assets/"));
+
   if (assetPathRelative === undefined) {
-    Logger.error({
+    Logger.info({
       msg: `Did not find 'assets/' string within asset type link.`,
     });
     return;
   }
   const noteId = data.id;
   if (noteId === undefined) {
-    Logger.error({
+    Logger.info({
       msg: `LinkData did not contain note id data:'${ErrorFactory.safeStringify(
         data
       )}'`,
@@ -172,7 +175,7 @@ const handleAssetLink = async ({
 
   const note: NoteProps | undefined = ShowPreviewNoteUtil.getNoteById(noteId);
   if (note === undefined) {
-    Logger.error({
+    Logger.info({
       msg: `Note was not found for id: '${noteId}'`,
     });
     return;
@@ -183,7 +186,38 @@ const handleAssetLink = async ({
     assetPathRelative
   );
 
-  await ShowPreviewAssetOpener.openWithDefaultApp(assetPathFull);
+  return assetPathFull;
+};
+
+const handleAssetLink = async ({
+  data,
+  wsRoot,
+}: {
+  data: NoteViewMessage["data"];
+  wsRoot: string;
+}) => {
+  let assetFullPath: undefined | string;
+
+  const DENDRON_VAULT_SPECIFIED_PREFIX = "dendron://";
+  if (data.href?.startsWith(DENDRON_VAULT_SPECIFIED_PREFIX)) {
+    assetFullPath = path.join(
+      wsRoot,
+      data.href?.substring(DENDRON_VAULT_SPECIFIED_PREFIX.length)
+    );
+  } else {
+    assetFullPath = vaultlessAssetPath({ data, wsRoot });
+  }
+
+  if (assetFullPath === undefined) {
+    Logger.error({
+      msg: `Was not able to construct asset path for data:'${ErrorFactory.safeStringify(
+        data
+      )}' wsRoot:'${wsRoot}'`,
+    });
+    return;
+  }
+
+  await ShowPreviewAssetOpener.openWithDefaultApp(assetFullPath);
 };
 
 export const handleLink = async ({

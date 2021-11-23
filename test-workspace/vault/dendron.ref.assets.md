@@ -2,13 +2,20 @@
 id: Hf27I1UR3HvKyd6HRh8C0
 title: Assets
 desc: ''
-updated: 1637576810331
+updated: 1637666291509
 created: 1637568178090
 ---
 
 ## PDF pasted with `Dendron: Paste File` command
-[dummy-pdf.pdf](assets/dummy-pdf.pdf) 
-* Should open with default PDF viewer when clicking the link within preview.
+ Should open the following assets with default app when clicking the link within preview:
+* [dummy-pdf.pdf](assets/dummy-pdf.pdf) 
+* [dummy-pdf.pdf](./assets/dummy-pdf.pdf) 
+* [dummy-pdf.pdf](/assets/dummy-pdf.pdf) 
+* [test-file-in-another-vault-which-is-named-assets](dendron://assets/assets/assets/test-file-in-asset-vault.md)
+
+## Regular navigation should still work
+* Quick check navigate to this: [[dendron://assets/note-in-asset-vault]]
+* Fuller check go to [[dendron.ref.links]]
 
 ## Images:
 Refer to [[dendron.ref.image]]

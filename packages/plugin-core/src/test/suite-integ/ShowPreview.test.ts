@@ -1,4 +1,4 @@
-import { describe, it } from "mocha";
+import { describe, it, beforeEach, afterEach } from "mocha";
 import {
   extractHeaderAnchorIfExists,
   extractNoteIdFromHref,
@@ -11,21 +11,33 @@ import { expect } from "../testUtilsv2";
 import sinon from "sinon";
 import { TestNoteFactory } from "@dendronhq/common-test-utils";
 import path from "path";
+import { NoteProps } from "@dendronhq/common-all";
 // import { PickerUtilsV2 } from "../../components/lookup/utils";
 
 suite("ShowPreview utility methods", () => {
   describe(`handleLink`, () => {
     describe(`LinkType.ASSET`, () => {
       describe(`WHEN valid href`, () => {
-        it(`WHEN called with valid href THEN open asset with default app.`, async () => {
+        let assetOpenerStub: any;
+        let fooNote: NoteProps;
+
+        beforeEach(async () => {
           const factory = TestNoteFactory.defaultUnitTestFactory();
-          const fooNote = await factory.createForFName("foo");
+
+          fooNote = await factory.createForFName("foo");
+
           sinon.stub(ShowPreviewNoteUtil, "getNoteById").returns(fooNote);
-          const assetOpenerStub = sinon.stub(
+          assetOpenerStub = sinon.stub(
             ShowPreviewAssetOpener,
             "openWithDefaultApp"
           );
+        });
 
+        afterEach(() => {
+          sinon.restore();
+        });
+
+        it(`WHEN called with valid href THEN open asset with default app.`, async () => {
           await handleLink({
             wsRoot: TestNoteFactory.DEFAULT_WS_ROOT,
             linkType: LinkType.ASSET,
@@ -37,6 +49,25 @@ suite("ShowPreview utility methods", () => {
 
           const expected = path.join(
             TestNoteFactory.DEFAULT_VAULT.fsPath,
+            "assets/dummy-pdf.pdf"
+          );
+
+          expect(assetOpenerStub.calledWith(expected)).toBeTruthy();
+        });
+
+        it(`WHEN called with vault specified href THEN open asset with default app.`, async () => {
+          await handleLink({
+            wsRoot: TestNoteFactory.DEFAULT_WS_ROOT,
+            linkType: LinkType.ASSET,
+            data: {
+              href: "dendron://vault-a/assets/dummy-pdf.pdf",
+              id: "foo-id",
+            },
+          });
+
+          const expected = path.join(
+            TestNoteFactory.DEFAULT_WS_ROOT,
+            "vault-a",
             "assets/dummy-pdf.pdf"
           );
 
