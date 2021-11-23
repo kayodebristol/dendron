@@ -907,7 +907,6 @@
     "@dendronhq/api-server": "^0.69.3-alpha.0",
     "@dendronhq/common-all": "^0.69.3-alpha.0",
     "@dendronhq/common-server": "^0.69.3-alpha.0",
-    "@dendronhq/dendron-cli": "^0.69.3-alpha.0",
     "@dendronhq/engine-server": "^0.69.3-alpha.0",
     "@dendronhq/pods-core": "^0.69.3-alpha.0",
     "@sentry/integrations": "^6.13.1",
